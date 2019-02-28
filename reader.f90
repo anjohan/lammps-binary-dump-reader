@@ -33,6 +33,7 @@ module mod_lammps_reader
             procedure :: read_next_header
             procedure :: read_step
             procedure :: reallocate_values
+            final :: close_reader
     end type
 
     contains
@@ -174,5 +175,13 @@ module mod_lammps_reader
                 allocate(self%values(num_columns, num_atoms))
 
             end associate
+        end subroutine
+
+        subroutine close_reader(self)
+            type(lammps_reader), intent(inout) :: self
+
+            if (self%has_opened_file) close(self%funit)
+
+            if (allocated(self%values)) deallocate(self%values)
         end subroutine
 end module
