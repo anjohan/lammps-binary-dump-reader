@@ -11,9 +11,14 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES GNU)
     set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -march=native")
 endif()
 
+set(CMAKE_Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/include)
+
 add_library(lammpsreader
     reader.f90
     fortran-utils/src/sorting.f90
     fortran-utils/src/types.f90
     fortran-utils/src/utils.f90
 )
+
+install(TARGETS lammpsreader DESTINATION lib)
+install(DIRECTORY ${PROJECT_BINARY_DIR}/include/ DESTINATION include)
