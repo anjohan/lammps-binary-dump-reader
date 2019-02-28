@@ -27,7 +27,9 @@ module mod_lammps_reader
         type(metadata) :: header, next_header
 
         contains
-            procedure :: open_file
+            procedure :: open_file_explicit
+            procedure :: open_file_asterisk
+            generic :: open_file => open_file_asterisk, open_file_explicit
             procedure :: read_next_header
             procedure :: read_step
             procedure :: reallocate_values
@@ -64,7 +66,7 @@ module mod_lammps_reader
             eof = .true.
         end function
 
-        subroutine open_file(self, filename)
+        subroutine open_file_explicit(self, filename)
             class(lammps_reader), intent(inout) :: self
             character(len=*), intent(in) :: filename
 
@@ -83,6 +85,35 @@ module mod_lammps_reader
             self%has_opened_file = .true.
 
             call self%read_next_header()
+        end subroutine
+
+        subroutine open_file_asterisk(self, filename, step)
+            class(lammps_reader), intent(inout) :: self
+            character(len=*), intent(in) :: filename
+            integer, intent(in) :: step
+
+            character(len=:), allocatable :: new_filename, prefix, suffix
+            integer :: new_length, asterisk_location
+
+            asterisk_location = index(filename, "*")
+
+            prefix = filename(1:asterisk_location-1)
+            suffix = filename(asterisk_location+1:)
+
+            if (step == 0) then
+                new_length = 1
+            else
+                new_length = floor(log10(1.0d0*step)) + 1
+            end if
+
+            new_length = new_length + len(prefix) + len(suffix)
+
+            allocate(character(len=new_length) :: new_filename)
+
+            write(new_filename, '(a,i0,a)') prefix, step, suffix
+
+            write(*, '(a)') new_filename
+            call self%open_file(new_filename)
         end subroutine
 
         function read_step(self) result(success)
