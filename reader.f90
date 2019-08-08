@@ -113,13 +113,12 @@ module mod_lammps_reader
 
             write(new_filename, '(a,i0,a)') prefix, step, suffix
 
-            write(*, '(a)') new_filename
             call self%open_file(new_filename)
         end subroutine
 
-        function read_step(self) result(success)
+        subroutine read_step(self, success)
             class(lammps_reader), intent(inout) :: self
-            logical :: success
+            logical, optional, intent(out) :: success
 
             integer :: chunk_number, chunk_start, chunk_end, &
                        values_in_chunk, atoms_in_chunk
@@ -144,14 +143,14 @@ module mod_lammps_reader
                     if (fstat /= 0) exit not_eof
                 end do
 
-                success = .true.
+                if (present(success)) success = .true.
                 call self%read_next_header
                 return
             end block not_eof
 
-            success = .false.
+            if (present(success)) success = .false.
             self%has_next_step = .false.
-        end function
+        end subroutine
 
         subroutine read_next_header(self)
             class(lammps_reader), intent(inout) :: self
