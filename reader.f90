@@ -1,5 +1,5 @@
 module mod_lammps_reader
-    use sorting, only: argsort
+    use m_sort, only: argsort
     use iso_fortran_env, only: int64, dp => real64
 
     implicit none

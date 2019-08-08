@@ -1,3 +1,3 @@
-[submodule "fortran-utils"]
-	path = fortran-utils
-	url = https://github.com/certik/fortran-utils.git
+[submodule "coretran"]
+	path = coretran
+	url = git@github.com:leonfoks/coretran.git
