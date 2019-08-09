@@ -1,6 +1,6 @@
 module mod_lammps_reader
     use m_sort, only: argsort
-    use iso_fortran_env, only: int64, dp => real64
+    use iso_fortran_env, only: int32, int64, dp => real64
 
     implicit none
 
@@ -169,6 +169,7 @@ module mod_lammps_reader
 
             class(lammps_reader), intent(inout) :: self
             integer, intent(in) :: outunit
+            integer :: num_values
 
             associate(hdr => self%header)
                 write(outunit) hdr%step, hdr%num_atoms, hdr%triclinic, &
@@ -178,7 +179,9 @@ module mod_lammps_reader
                     write(outunit) hdr%angles
                 end if
 
-                write(outunit) hdr%num_columns, 1, hdr%num_columns*hdr%num_atoms, self%values
+                num_values = hdr%num_columns*hdr%num_atoms
+
+                write(outunit) hdr%num_columns, 1, num_values, self%values
             end associate
         end subroutine
 
