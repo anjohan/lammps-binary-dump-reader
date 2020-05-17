@@ -212,8 +212,11 @@ module mod_lammps_reader
         subroutine close_reader(self)
             type(lammps_reader), intent(inout) :: self
 
-            if (self%has_opened_file) close(self%funit)
-
+            if (self%has_opened_file) then
+                close(self%funit)
+                self%has_opened_file = .false.
+            end if
+            
             if (allocated(self%values)) deallocate(self%values)
         end subroutine
 
