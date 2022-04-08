@@ -1,6 +1,7 @@
 module mod_lammps_reader
     use m_sort, only: argsort
-    use iso_fortran_env, only: int32, int64, dp => real64
+    use iso_fortran_env, only: int8, int32, int64, dp => real64
+    use iso_c_binding, only: c_char
 
     implicit none
 
@@ -13,6 +14,12 @@ module mod_lammps_reader
         logical :: is_triclinic
         real(dp) :: boundary(2, 3), & ! ((xmin,xmax),(ymin,ymax),(zmin,zmax))^T
                     angles(3)         ! if triclinic
+
+        ! optional properties from newer versions
+        character(len=:), allocatable :: magic_string, columns, unit_style
+        logical :: has_time, has_units
+        real(dp) :: time
+        integer :: endian, revision=-1
 
         contains
             procedure :: read_metadata
@@ -46,14 +53,30 @@ module mod_lammps_reader
             integer, intent(in) :: funit
             logical :: eof
 
-            integer :: fstat
+            integer :: fstat, string_length
+            integer(int8) :: flag
 
             not_eof: block
 
-                read(funit, iostat=fstat) self%step, self%num_atoms, self%triclinic, &
-                                          self%boundary_conditions, self%boundary
-
+                read(funit, iostat=fstat) self%step
                 if (fstat /= 0) exit not_eof
+
+                ! new format
+                if (self%step < 0) then
+                    string_length = -self%step
+
+                    if (allocated(self%magic_string)) deallocate(self%magic_string)
+                    allocate(character(len=string_length) :: self%magic_string)
+
+                    read(funit, iostat=fstat) self%magic_string, self%endian, self%revision, self%step
+                    if (fstat /= 0) exit not_eof
+                end if
+
+
+                read(funit, iostat=fstat) self%num_atoms, self%triclinic, &
+                                          self%boundary_conditions, self%boundary
+                if (fstat /= 0) exit not_eof
+
 
                 self%is_triclinic = self%triclinic /= 0
                 if (self%is_triclinic) then
@@ -61,7 +84,37 @@ module mod_lammps_reader
                     if (fstat /= 0) exit not_eof
                 end if
 
-                read(funit, iostat=fstat) self%num_columns, self%num_chunks
+                read(funit, iostat=fstat) self%num_columns
+                if (fstat /= 0) exit not_eof
+
+                if(self%revision > 1) then
+                    read(funit, iostat=fstat) string_length
+                    if (fstat /= 0) exit not_eof
+                    !write(*,*) "unit style string length", string_length
+
+                    if (allocated(self%unit_style)) deallocate(self%unit_style)
+                    allocate(character(len=string_length) :: self%unit_style)
+
+                    read(funit, iostat=fstat) self%unit_style, flag
+                    if (fstat /= 0) exit not_eof
+
+                    self%has_time = flag > 0
+                    if(self%has_time) then
+                        read(funit, iostat=fstat) self%time
+                        if (fstat /= 0) exit not_eof
+                    end if
+
+                    read(funit, iostat=fstat) string_length
+                    if (fstat /= 0) exit not_eof
+
+                    if (allocated(self%columns)) deallocate(self%columns)
+                    allocate(character(len=string_length) :: self%columns)
+
+                    read(funit, iostat=fstat) self%columns
+                    if (fstat /= 0) exit not_eof
+                end if
+
+                read(funit, iostat=fstat) self%num_chunks
                 if (fstat /= 0) exit not_eof
 
                 eof = .false.
@@ -216,7 +269,7 @@ module mod_lammps_reader
                 close(self%funit)
                 self%has_opened_file = .false.
             end if
-            
+
             if (allocated(self%values)) deallocate(self%values)
         end subroutine
 
