@@ -14,6 +14,7 @@ endif()
 set(CMAKE_Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/include)
 
 add_library(lammpsreader
+    STATIC
     reader.f90
 )
 
